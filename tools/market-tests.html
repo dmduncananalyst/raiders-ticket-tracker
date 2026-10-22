@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Market reader tests</title><h1>Market reader tests</h1><pre id="results"></pre><script src="market-reader.js"></script><script>
+const results=[];let pass=0,fail=0;
+function test(name,fn){try{if(!fn())throw Error('Assertion failed');pass++;results.push('PASS '+name);}catch(e){fail++;results.push('FAIL '+name+': '+e.message);}}
+const raw=(id,from,to,price=100)=>({listingId:id,inventoryType:'resale',currency:'USD',section:'221',row:'1',seatFrom:String(from),seatTo:String(to),listPrice:price,faceValue:price,noChargesPrice:price,totalPrice:price+20,charges:[{amount:20}],sellableQuantities:[2,4]});
+test('Matches all four own seats across two equal-priced pair listings',()=>{const s=JDMarketReader.snapshot([raw('a',11,12),raw('b',13,14)],'event',1);return s.own.priceCents===10000&&s.own.seats.join(',')==='11,12,13,14';});
+test('A partial own-seat match does not invent a single price for all four seats',()=>JDMarketReader.snapshot([raw('a',11,12)],'event',1).own===null);
+test('Different own prices withhold a single-price recommendation',()=>JDMarketReader.snapshot([raw('a',11,12),raw('b',13,14,110)],'event',1).own===null);
+test('Checks price plus itemized charges against buyer total',()=>{const r=raw('a',11,14);r.totalPrice=999;return JDMarketReader.normalize(r,'event')===null;});
+test('Will not treat a buyer-inclusive amount as the seller price',()=>{const r=raw('a',11,14);r.listPrice=120;return JDMarketReader.normalize(r,'event')===null;});
+test('Rejects primary tickets, wrong rows, unsupported quantities and currency',()=>{return [{inventoryType:'primary'},{row:'5'},{currency:'EUR'},{seatTo:'16'},{sellableQuantities:[1]}].every(change=>JDMarketReader.normalize({...raw('a',11,14),...change},'event')===null);});
+test('Does not mutate or invoke immutable source-array methods',()=>{const data=[Object.freeze(raw('a',11,12)),Object.freeze(raw('b',13,14))];data.map=()=>{throw Error('Immutable method');};Object.freeze(data);return JDMarketReader.snapshot(data,'event',1).own.priceCents===10000;});
+test('Own-source provenance contains every exact listing identifier',()=>JDMarketReader.snapshot([raw('a',11,12),raw('b',13,14)],'event',1).own.listingIds.length===2);
+document.querySelector('#results').textContent=pass+' passed, '+fail+' failed\n'+results.join('\n');document.title=fail?'FAIL market reader':'PASS market reader';
+</script></html>

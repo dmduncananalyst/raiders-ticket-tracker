@@ -1,0 +1,16 @@
+.preview/
+*.backup.json
+jd-ticket-backup-*.json
+.dev.vars
+.env
+.env.*
+relay/.wrangler/
+.wrangler/
+.dev.vars.*
+*.url
+
+# Retained local experiments; not part of the installed tracker.
+cloud/
+tools/Setup-TinyFish.ps1
+tools/Test-TinyFishCloud.mjs
+tools/Test-HostedTracker.mjs

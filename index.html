@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101112">
+  <meta name="description" content="JD's Raiders ticket prices at a glance.">
+  <title>JD Ticket Tracker</title>
+  <script>
+    // Opening this file directly must reach the running local pricing server.
+    if(location.protocol==='file:'){
+      document.documentElement.style.visibility='hidden';
+      location.replace('http://localhost:4174/'+location.search+location.hash);
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="core.js"></script>
+  <script defer src="pricing-source.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+<header>
+  <img class="shield" src="assets/raiders.svg" alt="Las Vegas Raiders shield" width="48" height="50">
+  <h1>JD Ticket Tracker</h1>
+</header>
+<main aria-label="Your five games">
+  <article class="game" id="rams" aria-labelledby="rams-title">
+    <div class="matchup" aria-hidden="true"><img src="assets/raiders.svg" alt=""><span>VS</span><img src="assets/rams.svg" alt=""></div>
+    <h2 id="rams-title"><span class="home-name">Las Vegas Raiders vs.</span> Los Angeles Rams</h2>
+    <p class="date"><time datetime="2026-10-25T13:25:00-07:00">Sun, October 25, 2026<br>1:25 PM · Las Vegas</time></p>
+    <dl aria-live="polite" aria-atomic="true"><dt>Your price:</dt><dd data-own>Checking…</dd><dt>Other sellers · Section 221:</dt><dd data-others>Checking…</dd></dl>
+    <p data-decision class="decision" hidden></p>
+  </article>
+  <article class="game" id="seahawks" aria-labelledby="seahawks-title">
+    <div class="matchup" aria-hidden="true"><img src="assets/raiders.svg" alt=""><span>VS</span><img src="assets/seahawks.svg" alt=""></div>
+    <h2 id="seahawks-title"><span class="home-name">Las Vegas Raiders vs.</span> Seattle Seahawks</h2>
+    <p class="date"><time datetime="2026-11-15T13:05:00-08:00">Sun, November 15, 2026<br>1:05 PM · Las Vegas</time></p>
+    <dl aria-live="polite" aria-atomic="true"><dt>Your price:</dt><dd data-own>Checking…</dd><dt>Other sellers · Section 221:</dt><dd data-others>Checking…</dd></dl>
+    <p data-decision class="decision" hidden></p>
+  </article>
+  <article class="game" id="chargers" aria-labelledby="chargers-title">
+    <div class="matchup" aria-hidden="true"><img src="assets/raiders.svg" alt=""><span>VS</span><img src="assets/chargers.svg" alt=""></div>
+    <h2 id="chargers-title"><span class="home-name">Las Vegas Raiders vs.</span> Los Angeles Chargers</h2>
+    <p class="date"><time datetime="2026-12-13T13:05:00-08:00">Sun, December 13, 2026<br>1:05 PM · Las Vegas</time></p>
+    <dl aria-live="polite" aria-atomic="true"><dt>Your price:</dt><dd data-own>Checking…</dd><dt>Other sellers · Section 221:</dt><dd data-others>Checking…</dd></dl>
+    <p data-decision class="decision" hidden></p>
+  </article>
+  <article class="game" id="broncos" aria-labelledby="broncos-title">
+    <div class="matchup" aria-hidden="true"><img src="assets/raiders.svg" alt=""><span>VS</span><img src="assets/broncos.svg" alt=""></div>
+    <h2 id="broncos-title"><span class="home-name">Las Vegas Raiders vs.</span> Denver Broncos</h2>
+    <p class="date"><time datetime="2026-12-20T13:25:00-08:00">Sun, December 20, 2026<br>1:25 PM · Las Vegas</time></p>
+    <dl aria-live="polite" aria-atomic="true"><dt>Your price:</dt><dd data-own>Checking…</dd><dt>Other sellers · Section 221:</dt><dd data-others>Checking…</dd></dl>
+    <p data-decision class="decision" hidden></p>
+  </article>
+  <article class="game" id="titans" aria-labelledby="titans-title">
+    <div class="matchup" aria-hidden="true"><img src="assets/raiders.svg" alt=""><span>VS</span><img src="assets/titans.svg" alt=""></div>
+    <h2 id="titans-title"><span class="home-name">Las Vegas Raiders vs.</span> Tennessee Titans</h2>
+    <p class="date"><time datetime="2026-12-27T13:05:00-08:00">Sun, December 27, 2026<br>1:05 PM · Las Vegas</time></p>
+    <dl aria-live="polite" aria-atomic="true"><dt>Your price:</dt><dd data-own>Checking…</dd><dt>Other sellers · Section 221:</dt><dd data-others>Checking…</dd></dl>
+    <p data-decision class="decision" hidden></p>
+  </article>
+</main>
+</body>
+</html>

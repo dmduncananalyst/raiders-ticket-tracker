@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Relay checks</title><h1>Local relay logic checks</h1><pre id="results">Running…</pre><script type="module">
+import worker,{JDRelay} from './worker.js';
+const output=document.querySelector('#results'),results=[];let pass=0,fail=0;
+const env={VIEW_KEY:'v'.repeat(40),PUBLISH_KEY:'p'.repeat(40),ALLOWED_ORIGIN:'https://example.github.io'};
+const records=new Map(),ctx={storage:{async get(k){return structuredClone(records.get(k));},async put(k,v){records.set(k,structuredClone(v));}},blockConcurrencyWhile(fn){return fn();}};
+let relay=new JDRelay(ctx,env);
+const req=(path,key=env.VIEW_KEY,method='GET',body)=>new Request('https://relay.test'+path,{method,headers:{Authorization:'Bearer '+key,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+const call=(...args)=>relay.fetch(req(...args));
+async function test(name,fn){try{if(!await fn())throw Error('Assertion failed');pass++;results.push('PASS '+name);}catch(e){fail++;results.push('FAIL '+name+': '+e.message);}output.textContent=results.join('\n');}
+const id='check-000000000000001',url='/api/prices/rams?check='+id;
+await test('Unauthenticated requests are denied',async()=> (await call(url,'wrong')).status===401);
+await test('An offline helper cannot return an old price',async()=> (await call(url)).status===503);
+await test('Viewing key cannot poll or publish helper jobs',async()=> (await call('/publisher/jobs')).status===401);
+await test('Publisher heartbeat permits a new, empty job queue',async()=> (await (await call('/publisher/jobs',env.PUBLISH_KEY)).json()).job===null);
+await test('A reader request queues a fresh check',async()=> (await call(url)).status===202);
+await test('Repeated polling deduplicates the same check',async()=>{await call(url);return relay.jobs.length===1;});
+await test('Publisher receives only a supported game and the requested check ID',async()=>{const r=await (await call('/publisher/jobs',env.PUBLISH_KEY)).json();return r.job.id===id&&r.job.game==='rams';});
+const checkedAt=Date.now(),quote={status:'ready',source:'ticketmaster',eventId:'1700646CC3A7C3B1',checkedAt,collectionStartedAt:checkedAt,own:null,listings:[]};
+await test('A slow active read stays pending between publisher heartbeats',async()=>{const heartbeat=relay.heartbeat;relay.heartbeat=Date.now()-95000;try{return (await call(url)).status===202&&(await call('/api/prices/titans?check=slow-000000000000001')).status===202;}finally{relay.heartbeat=heartbeat;}});
+await test('A result retains its real observation time',async()=>{await call('/publisher/results/'+id,env.PUBLISH_KEY,'POST',{quote});const data=await (await call(url)).json();return data.checkedAt===checkedAt&&data.checkId===id;});
+await test('A new opening cannot reuse the prior completed check',async()=> (await call('/api/prices/rams?check=check-000000000000002')).status===202);
+await test('A wrong-game response is withheld',async()=>{const other='check-000000000000002';await call('/publisher/results/'+other,env.PUBLISH_KEY,'POST',{quote:{...quote,eventId:'wrong'}});return (await call('/api/prices/rams?check='+other)).status===503;});
+await test('Old observations are withheld',async()=>{const old='check-000000000000003';await call('/api/prices/rams?check='+old);await call('/publisher/results/'+old,env.PUBLISH_KEY,'POST',{quote:{...quote,checkedAt:Date.now()-7200001}});return (await call('/api/prices/rams?check='+old)).status===503;});
+await test('Restarting the relay preserves only the matching completed job',async()=>{relay=new JDRelay(ctx,env);return (await (await call(url)).json()).checkId===id;});
+await test('Expired jobs cannot supply old quotes',async()=>{await relay.ready;relay.jobs.find(j=>j.id===id).createdAt-=420001;return (await call(url)).status===202;});
+await test('A check ID cannot cross games',async()=> (await call('/api/prices/titans?check='+id)).status===409);
+env.RELAY={idFromName(){return 'one';},get(){return relay;}};
+// Browser Request strips a caller-supplied Origin. Use the server-side request
+// interface here to model the Origin header that Cloudflare receives.
+await test('Cross-origin reads from an unapproved website are denied',async()=>{const r=await worker.fetch({url:'https://relay.test'+url,method:'GET',headers:new Headers({Origin:'https://unapproved.test',Authorization:'Bearer '+env.VIEW_KEY})},env);return r.status===403;});
+await test('The configured website receives CORS preflight permission',async()=>{const r=await worker.fetch({url:'https://relay.test'+url,method:'OPTIONS',headers:new Headers({Origin:env.ALLOWED_ORIGIN})},env);return r.status===204&&r.headers.get('Access-Control-Allow-Origin')===env.ALLOWED_ORIGIN;});
+await test('Identical viewing and publishing keys fail closed',async()=>{const broken=new JDRelay(ctx,{VIEW_KEY:env.VIEW_KEY,PUBLISH_KEY:env.VIEW_KEY});return (await broken.fetch(req(url))).status===503;});
+output.textContent=pass+' passed, '+fail+' failed\n'+results.join('\n');document.title=fail?'FAIL relay checks':'PASS relay checks';
+</script></html>

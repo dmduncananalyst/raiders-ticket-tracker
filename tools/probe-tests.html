@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Browser helper checks</title><h1>Browser helper checks</h1><pre id="results">Running…</pre><iframe title="Synthetic diagnostic fixtures"></iframe><script src="browser-probe.js"></script><script>
+(async()=>{
+  const frame=document.querySelector('iframe'),out=document.querySelector('#results'),results=[];
+  const loc={hostname:'www.ticketmaster.com',pathname:'/event/1700646CC3A7C3B1'};
+  let pass=0,fail=0;
+  const load=html=>new Promise(resolve=>{frame.onload=resolve;frame.srcdoc='<!doctype html><html><title>Test event</title><body>'+html+'</body></html>';});
+  function check(name,fn){try{if(!fn())throw Error('Assertion failed');pass++;results.push('PASS '+name);}catch(e){fail++;results.push('FAIL '+name+': '+e.message);}}
+  await load('<ul><li>Verified Resale<br>Sec 221, Row 1<br>Seats 11–14<br>$123.45 each includes fees</li></ul>');
+  check('Candidate contains only numeric seat/price metadata and remains unverified',()=>{const r=JDBrowserProbe.inspect(frame.contentDocument,loc,1);return r.candidateCount===1&&r.candidates[0].amountsCents[0]===12345&&r.candidates[0].seatRange.join(',')==='11,14'&&r.candidates[0].feesIncludedLabelVisible&&r.ownListingVerified===false&&r.sellerPriceVerified===false;});
+  check('Account and login pages are excluded',()=>JDBrowserProbe.inspect(frame.contentDocument,{hostname:'my.ticketmaster.com',pathname:'/account'},1).state==='outside-allowed-event');
+  check('Unsupported games are excluded',()=>JDBrowserProbe.inspect(frame.contentDocument,{hostname:'www.ticketmaster.com',pathname:'/event/other'},1).state==='outside-allowed-event');
+  check('Other websites are excluded',()=>JDBrowserProbe.inspect(frame.contentDocument,{hostname:'example.com',pathname:loc.pathname},1).state==='outside-allowed-event');
+  Object.defineProperty(frame.contentDocument,'cookie',{get(){throw Error('Cookies must not be read');}});
+  check('Diagnostic never reads cookies',()=>JDBrowserProbe.inspect(frame.contentDocument,loc,1).state==='candidates-need-verification');
+  await load('<h1>Your Browsing Activity Has Been Paused</h1><li>Sec 221 Row 1 $123.45</li>');
+  check('Security block takes precedence over any price labels',()=>{const r=JDBrowserProbe.inspect(frame.contentDocument,loc,1);return r.state==='blocked'&&!r.candidates;});
+  await load('<ul><li>Sec 222 Row 1 $80.00</li><li>Sec 221 Row 5 $90.00</li><li style="display:none">Sec 221 Row 1 $100.00</li></ul>');
+  check('Wrong section, wrong rows and hidden text do not become candidates',()=>JDBrowserProbe.inspect(frame.contentDocument,loc,1).candidateCount===0);
+  await load('<ul><li>Verified Resale Sec 221 Row 3 $1,234.50</li></ul>');
+  check('US currency labels parse to integer cents',()=>JDBrowserProbe.inspect(frame.contentDocument,loc,1).candidates[0].amountsCents[0]===123450);
+  out.textContent=pass+' passed, '+fail+' failed\n'+results.join('\n');document.title=fail?'FAIL helper checks':'PASS helper checks';
+})();
+</script></html>

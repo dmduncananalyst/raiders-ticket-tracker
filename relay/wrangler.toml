@@ -1,0 +1,15 @@
+name = "jd-ticket-relay"
+main = "worker.js"
+compatibility_date = "2026-10-22"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "RELAY"
+class_name = "JDRelay"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["JDRelay"]
+
+# Set ALLOWED_ORIGIN, VIEW_KEY, and PUBLISH_KEY as deployment secrets.
+# No real key or personal price belongs in this file.
