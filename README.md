@@ -1,10 +1,10 @@
-﻿# JD Ticket Tracker
+# JD Ticket Tracker
 
 A read-only Raiders ticket page for a phone. All five games stay visible. The three unsold games show fresh asking prices, comparable Section 221 listings with row labels, and a supported pricing decision. Rams and Seahawks are marked sold as confirmed by the owner.
 
 ## Installed free setup
 
-The owner accepted a computer-dependent setup: Windows stays on, awake, online, and signed into the owner's Windows account. Codex, VS Code, and ordinary browser windows may be closed. When enabled, a windowless Windows Scheduled Task named **JD Ticket Tracker** owns the background reader. It starts at Windows sign-in and recovers if its child reader exits. The dedicated minimized Chrome browser opens only for a valid active price-check job. Closing it with an empty queue does not reopen it. The reader prevents automatic sleep while running; manually shutting down or sleeping the computer interrupts pricing.
+The owner accepted a computer-dependent setup: Windows stays on, awake, online, and signed into the owner's Windows account. Codex, VS Code, and ordinary browser windows may be closed. When enabled, a windowless Windows Scheduled Task named **JD Ticket Tracker** owns the background reader. It starts at Windows sign-in and recovers if its child reader exits. The dedicated minimized Chrome browser opens only for a valid active price-check job. After 30 seconds without another queued job, the reader closes only the dedicated browser window. Closing it with an empty queue does not reopen it. The reader prevents automatic sleep while running; manually shutting down or sleeping the computer interrupts pricing.
 
 The hosted frontend and private job relay run together on Cloudflare Workers Free. The private bookmark is stored as `phone-url.txt` inside the protected installation's private state folder; never paste it into this public repository. Opening, returning to the tab, or restoring the page requests new observations. The website cannot run arbitrary commands on the computer. It can request only one of the five fixed games; the helper validates the job and uses its fixed local reader script. No incoming tunnel or public local browser-debugging port is used.
 
@@ -28,7 +28,7 @@ The developer preview is `http://localhost:4174/` while `tools/Serve-Tracker.ps1
 
 ## Price verification
 
-Preconfigured seats are Section 221, Row 1, Seats 11–14. Comparisons require the same event, Section 221, Rows 1–4, two or four consecutive seats, USD resale inventory, and an explicit listing ID. All offers overlapping the owner's seats are excluded from comparisons. The source's base-price fields must agree and reconcile exactly with its itemized charges and total. No guessed fee percentage is used.
+Preconfigured seats are Section 221, Row 1, Seats 11–14. The other-seller display includes verified resale listings throughout Section 221, across numeric rows and available consecutive ticket quantities. Separate listing IDs retain their individual prices even in the same row. Recommendation eligibility remains narrower: comparisons require the same event, Section 221, Rows 1–4, two or four consecutive seats, USD resale inventory, and an explicit listing ID. All offers overlapping the owner's seats are excluded from comparisons. The source's base-price fields must agree and reconcile exactly with its itemized charges and total. No guessed fee percentage is used.
 
 Different verified own pair prices are both displayed. One shared recommendation requires complete own-seat coverage and the same independently calculated recommendation for both pairs. The agreed rule compares against the lowest eligible comparable asking price: above 105% suggests one dollar below it; below 90% suggests matching it; inclusive middle bounds keep the current price. The existing rules treat Rows 1–4 as eligible comparisons; they do not apply an invented row-quality adjustment.
 

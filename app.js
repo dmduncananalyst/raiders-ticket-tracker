@@ -8,7 +8,7 @@
       card.classList.remove('sold');card.querySelector('dl').hidden=false;
       if(game.sold||view.sold){card.classList.add('sold');card.querySelector('[data-own]').textContent='Sold';card.querySelector('[data-others]').textContent='—';card.querySelector('dl').hidden=true;const badge=card.querySelector('[data-decision]');badge.hidden=false;badge.textContent='TICKETS SOLD';badge.className='decision sold-label';return;}
       card.querySelector('[data-own]').textContent=checking?'Checking…':view.own===null?(view.ownPrices?.length?view.ownPrices.map(JD.money).join(' / ')+' each':'Price unavailable'):`${JD.money(view.own)} each`;
-      card.querySelector('[data-others]').textContent=checking?'Checking…':!view.others?.length?'Price unavailable':view.otherQuotes?.length?view.otherQuotes.map(p=>`${JD.money(p.priceCents)} each · Row ${p.row}`).join('\n'):view.others.map(JD.money).join(' · ')+' each';
+      card.querySelector('[data-others]').textContent=checking?'Checking…':!view.otherQuotes?.length&&!view.others?.length?'Price unavailable':view.otherQuotes?.length?view.otherQuotes.map(p=>`${JD.money(p.priceCents)} each · Row ${p.row}`).join('\n'):view.others.map(JD.money).join(' · ')+' each';
       const decision=card.querySelector('[data-decision]');
       decision.textContent=view.decision?.text||'';
       decision.hidden=!view.decision;

@@ -30,7 +30,10 @@ function Invoke-PageCommand([string]$Method, [hashtable]$Parameters) {
       $response = [Text.Encoding]::UTF8.GetString($message.ToArray()) | ConvertFrom-Json
       if ($response.method -eq 'Fetch.requestPaused') {
         $requestUri=[Uri]$response.params.request.url
-        $approved=$requestUri.Scheme -eq 'https' -and $requestUri.IsDefaultPort -and !$requestUri.UserInfo -and $requestUri.Host -in @('www.ticketmaster.com','offeradapter.ticketmaster.com','services.ticketmaster.com','mapsapi.tmol.io','s1.ticketm.net','s2.ticketm.net','s3.ticketm.net')
+        # The current official event page boots from this versioned static CDN.
+        # This grants static assets only, never navigation, APIs or accounts.
+        $staticAsset=$requestUri.Host -eq 'uk.tmconst.com' -and $response.params.resourceType -in @('Script','Stylesheet','Font','Image') -and $requestUri.AbsolutePath -match '^/rc-[a-f0-9]+/_next/static/(?:[A-Za-z0-9_/.[\]-]|%5[bBdD])+\.(js|css|woff2?|ttf|svg|png|jpe?g|webp)$'
+        $approved=$requestUri.Scheme -eq 'https' -and $requestUri.IsDefaultPort -and !$requestUri.UserInfo -and ($requestUri.Host -in @('www.ticketmaster.com','offeradapter.ticketmaster.com','services.ticketmaster.com','mapsapi.tmol.io','s1.ticketm.net','s2.ticketm.net','s3.ticketm.net') -or $staticAsset)
         if($response.params.resourceType -eq 'Document'){
           $approved=$approved -and $requestUri.Host -eq 'www.ticketmaster.com' -and $requestUri.AbsolutePath -match '^/event/([A-Za-z0-9]+)/?$' -and $allowedEvents -ccontains $Matches[1]
         }

@@ -18,6 +18,38 @@ function Ensure-Browser {
   & (Join-Path $PSScriptRoot 'Start-TicketmasterTest.ps1') -Port $BrowserPort -Minimized | Out-Null
   Start-Sleep -Seconds 5
 }
+function Close-IdleBrowser {
+  # Close only the dedicated automation profile, never a personal window.
+  $profile=Join-Path $state 'ticketmaster-helper-profile'
+  $profileArg='--user-data-dir="'+$profile+'"'
+  $browsers=Get-CimInstance Win32_Process -Filter "Name='chrome.exe' OR Name='msedge.exe'" | Where-Object {
+    $_.CommandLine -and $_.CommandLine.Contains($profileArg) -and
+    $_.CommandLine -match ('(?:^|\s)--remote-debugging-port='+$BrowserPort+'(?:\s|$)') -and
+    $_.CommandLine -notmatch '(?:^|\s)--type='
+  }
+  foreach($browser in $browsers){
+    $process=Get-Process -Id $browser.ProcessId -ErrorAction SilentlyContinue
+    if(!$process){continue}
+    $null=$process.CloseMainWindow()
+    if(!$process.WaitForExit(1000)){
+      # Chrome can keep its profile alive after the final window closes.
+      # Gracefully exit that browser via its existing loopback-only session.
+      $version=Invoke-RestMethod -Uri "http://127.0.0.1:$BrowserPort/json/version" -TimeoutSec 2 -MaximumRedirection 0
+      $endpoint=[Uri]$version.webSocketDebuggerUrl
+      if($endpoint.Scheme -ne 'ws' -or $endpoint.Host -ne '127.0.0.1' -or $endpoint.Port -ne $BrowserPort -or $endpoint.AbsolutePath -notmatch '^/devtools/browser/[a-zA-Z0-9-]+$' -or $endpoint.UserInfo -or $endpoint.Query){throw 'Invalid local browser shutdown endpoint'}
+      $socket=[Net.WebSockets.ClientWebSocket]::new()
+      $cancel=[Threading.CancellationTokenSource]::new(5000)
+      try{
+        $socket.ConnectAsync($endpoint,$cancel.Token).GetAwaiter().GetResult() | Out-Null
+        $bytes=[Text.Encoding]::UTF8.GetBytes('{"id":1,"method":"Browser.close"}')
+        $socket.SendAsync([ArraySegment[byte]]::new($bytes),[Net.WebSockets.WebSocketMessageType]::Text,$true,$cancel.Token).GetAwaiter().GetResult() | Out-Null
+        $null=$process.WaitForExit(3000)
+      }finally{$socket.Dispose();$cancel.Dispose()}
+    }
+    if($process.HasExited){Log 'Closed the idle dedicated Ticketmaster browser.'}
+  }
+}
+$idleClock=[Diagnostics.Stopwatch]::StartNew()
 Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class JDStayAwake { [DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags); }'
 $null=[JDStayAwake]::SetThreadExecutionState(2147483649)
 Log 'Background program started.'
@@ -33,7 +65,16 @@ try{
       try{$key=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)}finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
       $headers=@{Authorization="Bearer $key"}
       $reply=Invoke-RelayRequest -Uri ($relay.AbsoluteUri+'publisher/jobs') -Headers $headers
-      if(!$reply.job){Start-Sleep -Seconds 5;continue}
+      if(!$reply.job){
+        if($idleClock.Elapsed.TotalSeconds -ge 30){
+          $idleLock=[Threading.Mutex]::new($false,'Local\JDTicketTrackerCollector')
+          $idleLocked=$false
+          try{$idleLocked=$idleLock.WaitOne(0);if($idleLocked){Close-IdleBrowser}}
+          finally{if($idleLocked){$idleLock.ReleaseMutex()};$idleLock.Dispose()}
+        }
+        Start-Sleep -Seconds 5;continue
+      }
+      $idleClock.Restart()
       $job=$reply.job
       if($job.game -notin @('rams','seahawks','chargers','broncos','titans') -or $job.id -notmatch '^[\w-]{16,80}$'){throw 'Invalid job'}
       $lock=[Threading.Mutex]::new($false,'Local\JDTicketTrackerCollector')
@@ -57,6 +98,7 @@ try{
       $body=@{quote=$quote}|ConvertTo-Json -Depth 12 -Compress
       Invoke-RelayRequest -Uri ($relay.AbsoluteUri+'publisher/results/'+$job.id) -Method Post -Headers $headers -Body $body | Out-Null
       Log ("Completed {0}: {1}" -f $job.game,$quote.status)
+      $idleClock.Restart()
     }catch{Log 'Check could not complete; no old price was sent.';Start-Sleep -Seconds 10}
     finally{$key=$null;$headers=$null}
   }

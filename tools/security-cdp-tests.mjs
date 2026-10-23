@@ -16,6 +16,8 @@ for(const mode of ['redirects','timeout','abandoned']){
     const command=JSON.parse(raw);commands.push(command.method);
     if(command.method==='Fetch.enable'&&mode==='redirects'){
       [...blocked,approved].forEach((url,i)=>ws.send(JSON.stringify({method:'Fetch.requestPaused',params:{requestId:String(i),resourceType:'Document',request:{url}}})));
+      for(const [i,url,type] of [[100,'https://uk.tmconst.com/rc-bb3a24ea/_next/static/chunks/main-123.js','Script'],[101,'https://uk.tmconst.com/rc-bb3a24ea/_next/static/chunks/main-123.js','Document'],[102,'https://uk.tmconst.com/account','Script'],[103,'https://uk.tmconst.com:444/rc-bb3a24ea/_next/static/chunks/main-123.js','Script'],[104,'https://unapproved.invalid/rc-bb3a24ea/_next/static/chunks/main-123.js','Script'],[105,'https://uk.tmconst.com/rc-bb3a24ea/_next/static/chunks/main-123.js','XHR']])ws.send(JSON.stringify({method:'Fetch.requestPaused',params:{requestId:String(i),resourceType:type,request:{url}}}));
+      ws.send(JSON.stringify({method:'Fetch.requestPaused',params:{requestId:'106',resourceType:'Script',request:{url:'https://uk.tmconst.com/rc-bb3a24ea/_next/static/chunks/pages/naevent/%5BeventId%5D-example.js'}}}));
     }
     if(command.method.startsWith('Fetch.')&&command.params?.requestId)intercepts.set(command.params.requestId,command.method);
     if(command.method==='Runtime.evaluate'&&mode==='timeout')return;
@@ -32,6 +34,9 @@ for(const mode of ['redirects','timeout','abandoned']){
       assert(!failed,'Reader failed before redirect checks');
       blocked.forEach((url,i)=>assert(intercepts.get(String(i))==='Fetch.failRequest','Unapproved navigation accepted: '+url));
       assert(intercepts.get(String(blocked.length))==='Fetch.continueRequest','Approved event blocked');
+      assert(intercepts.get('100')==='Fetch.continueRequest','Official static event bundle blocked');
+      assert(intercepts.get('106')==='Fetch.continueRequest','Encoded event route bundle blocked');
+      for(const id of ['101','102','103','104','105'])assert(intercepts.get(id)==='Fetch.failRequest','Static CDN exception allowed navigation, API, foreign host or port');
     }else{
       assert(failed,'Abandoned/timeout check did not fail');
       assert(commands.includes('Page.stopLoading'),'Browser loading was not stopped');

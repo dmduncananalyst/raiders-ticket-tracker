@@ -27,23 +27,28 @@ globalThis.JD = (() => {
     const own=snapshot.own;
     const exact=valid(own)&&own.row===1&&own.seats.length===4&&seats.numbers.every(n=>own.seats.includes(n));
     const ownPrice=exact?own.priceCents:null;
-    const ownQuotes=Array.isArray(snapshot.listings)?snapshot.listings.filter(p=>valid(p)&&p.resale===true&&p.row===1&&[2,4].includes(p.seats.length)&&p.seats.every((n,i)=>seats.numbers.includes(n)&&(i===0||n===p.seats[i-1]+1))):[];
+    const ownQuotes=Array.isArray(snapshot.listings)?snapshot.listings.filter(p=>valid(p)&&p.resale===true&&p.comparisonEligible!==false&&p.row===1&&[2,4].includes(p.seats.length)&&p.seats.every((n,i)=>seats.numbers.includes(n)&&(i===0||n===p.seats[i-1]+1))):[];
     const ownPrices=[...new Set(ownQuotes.map(p=>p.priceCents))].sort((a,b)=>a-b);
     const ownSeats=ownQuotes.flatMap(p=>p.seats);
     const completeOwn=ownSeats.length===4&&new Set(ownSeats).size===4;
     if(!Array.isArray(snapshot.listings))return {own:ownPrice,others:null,decision:null};
-    const unique=new Map(),comparisons=new Map();
-    for(const p of snapshot.listings){
-      if(!valid(p)||p.resale!==true||p.row<1||p.row>4||![2,4].includes(p.seats.length))continue;
+    const unique=new Map(),comparisons=new Map(),sectionListings=new Map();
+    const displayListings=snapshot.sectionListings===undefined?snapshot.listings:snapshot.sectionListings;
+    if(!Array.isArray(displayListings)||displayListings.length>100)return {own:ownPrice,ownPrices,others:null,decision:null};
+    for(const p of displayListings){
+      if(!valid(p)||p.resale!==true||p.row<1||!p.seats.length||p.seats.length>100||p.seats.some(n=>n<1))continue;
       const sorted=p.seats.slice().sort((a,b)=>a-b);
       if(!sorted.every((n,i)=>i===0||n===sorted[i-1]+1))continue;
       if((own&&p.listingId===own.listingId)||(p.row===1&&p.seats.some(n=>seats.numbers.includes(n))))continue;
       if(unique.has(p.listingId)&&unique.get(p.listingId)!==p.priceCents)return {own:ownPrice,ownPrices,others:null,decision:null};
       unique.set(p.listingId,p.priceCents);
+      sectionListings.set(p.listingId,{priceCents:p.priceCents,row:p.row});
+      // Display the full section; retain the existing recommendation cohort.
+      if(p.row>4||p.comparisonEligible===false||![2,4].includes(p.seats.length))continue;
       comparisons.set(p.listingId,{priceCents:p.priceCents,row:p.row});
     }
-    const prices=[...unique.values()].sort((a,b)=>a-b);
-    const otherQuotes=[...comparisons.values()].sort((a,b)=>a.priceCents-b.priceCents||a.row-b.row);
+    const prices=[...comparisons.values()].map(p=>p.priceCents).sort((a,b)=>a-b);
+    const otherQuotes=[...sectionListings.values()].sort((a,b)=>a.priceCents-b.priceCents||a.row-b.row);
     return {own:ownPrice,ownPrices,others:prices.length?prices:null,otherQuotes,decision:completeOwn&&ownPrices.length>1&&prices.length&&ownPrices.every(p=>recommend(p,prices)?.text===recommend(ownPrices[0],prices)?.text)?recommend(ownPrices[0],prices):recommend(ownPrice,prices)};
   }
   return {games,seats,money,recommend,verifiedView};
