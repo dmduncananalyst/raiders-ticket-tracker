@@ -1,7 +1,7 @@
 param([int]$PreviewPort=4174,[switch]$OpenFile)
 $ErrorActionPreference='Stop'
 $rootPath=Split-Path -Parent $PSScriptRoot
-$profilePath=Join-Path $rootPath ('.preview\live-tracker-test-'+[Guid]::NewGuid().ToString('N'))
+$profilePath=Join-Path ([IO.Path]::GetTempPath()) ('raiders-live-tracker-test-'+[Guid]::NewGuid().ToString('N'))
 $browserPath='C:\Program Files\Google\Chrome\Application\chrome.exe'
 $startUrl="http://localhost:$PreviewPort/tools/live-check.html?visual=1"
 if($OpenFile){$startUrl=([Uri](Join-Path $rootPath 'index.html')).AbsoluteUri}
