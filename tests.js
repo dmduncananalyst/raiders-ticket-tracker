@@ -39,7 +39,7 @@
     const root=q('main'),empty={own:null,others:null,decision:null};let calls=0,rejectNext=false,staleNext=false;
     const source={async getCurrentPrices(g){calls++;if(rejectNext)throw Error('Offline');return snapshot(g,12000,10000,Date.now()-(staleNext?7200001:0));}};
     tracker=win().JDTracker.createTracker(root,source);await wait();
-    test('Synthetic source exercises the real display and decision path',()=>{eq(q('#chargers [data-own]').textContent,'$120.00 each');eq(q('#chargers [data-others]').textContent,'$100.00 each · Row 2');assert(q('#chargers [data-others]').previousElementSibling.textContent.includes('Section 221'));eq(q('#chargers [data-decision]').textContent,'LOWER TO $99.00 EACH');eq(calls,3);});
+    test('Synthetic source exercises the real display and decision path',()=>{eq(q('#chargers [data-own]').textContent,'$120.00 each');eq(q('#chargers [data-others]').textContent,'Row 2\nSeats 1–2 — $100.00 each');assert(q('#chargers [data-others]').previousElementSibling.textContent.includes('Section 221'));eq(q('#chargers [data-decision]').textContent,'LOWER TO $99.00 EACH');eq(calls,3);});
     let pending;const deferred={getCurrentPrices(g){return new Promise(resolve=>{pending=()=>resolve(snapshot(g));});}};
     tracker.dispose();tracker=win().JDTracker.createTracker(root,deferred);
     test('During a new request, all games remain and Checking replaces old values immediately',()=>{eq(doc().querySelectorAll('.game').length,5);for(const p of doc().querySelectorAll('.game:not(.sold) [data-own],.game:not(.sold) [data-others]'))eq(p.textContent,'Checking…');for(const d of doc().querySelectorAll('.game:not(.sold) [data-decision]'))assert(d.hidden);});

@@ -42,7 +42,7 @@ globalThis.JD = (() => {
       if((own&&p.listingId===own.listingId)||(p.row===1&&p.seats.some(n=>seats.numbers.includes(n))))continue;
       if(unique.has(p.listingId)&&unique.get(p.listingId)!==p.priceCents)return {own:ownPrice,ownPrices,others:null,decision:null};
       unique.set(p.listingId,p.priceCents);
-      sectionListings.set(p.listingId,{priceCents:p.priceCents,row:p.row});
+      sectionListings.set(p.listingId,{priceCents:p.priceCents,row:p.row,seats:sorted});
       // Display the full section; retain the existing recommendation cohort.
       if(p.row>4||p.comparisonEligible===false||![2,4].includes(p.seats.length))continue;
       comparisons.set(p.listingId,{priceCents:p.priceCents,row:p.row});

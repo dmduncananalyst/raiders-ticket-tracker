@@ -1,5 +1,16 @@
 (() => {
   'use strict';
+  function formatListings(quotes){
+    const rows=new Map();
+    for(const quote of quotes){if(!rows.has(quote.row))rows.set(quote.row,[]);rows.get(quote.row).push(quote);}
+    return [...rows].sort(([a],[b])=>a-b).map(([row,listings])=>{
+      const lines=listings.slice().sort((a,b)=>a.seats[0]-b.seats[0]||a.priceCents-b.priceCents).map(p=>{
+        const seatLabel=p.seats.length===1?`Seat ${p.seats[0]}`:`Seats ${p.seats[0]}–${p.seats[p.seats.length-1]}`;
+        return `${seatLabel} — ${JD.money(p.priceCents)} each`;
+      });
+      return [`Row ${row}`,...lines].join('\n');
+    }).join('\n\n');
+  }
   function createTracker(root,source,{timeoutMs=source.timeoutMs||12000}={}) {
     let generation=0,controller=null,disposed=false;
     const timers=new Set();
@@ -8,7 +19,7 @@
       card.classList.remove('sold');card.querySelector('dl').hidden=false;
       if(game.sold||view.sold){card.classList.add('sold');card.querySelector('[data-own]').textContent='Sold';card.querySelector('[data-others]').textContent='—';card.querySelector('dl').hidden=true;const badge=card.querySelector('[data-decision]');badge.hidden=false;badge.textContent='TICKETS SOLD';badge.className='decision sold-label';return;}
       card.querySelector('[data-own]').textContent=checking?'Checking…':view.own===null?(view.ownPrices?.length?view.ownPrices.map(JD.money).join(' / ')+' each':'Price unavailable'):`${JD.money(view.own)} each`;
-      card.querySelector('[data-others]').textContent=checking?'Checking…':!view.otherQuotes?.length&&!view.others?.length?'Price unavailable':view.otherQuotes?.length?view.otherQuotes.map(p=>`${JD.money(p.priceCents)} each · Row ${p.row}`).join('\n'):view.others.map(JD.money).join(' · ')+' each';
+      card.querySelector('[data-others]').textContent=checking?'Checking…':!view.otherQuotes?.length&&!view.others?.length?'Price unavailable':view.otherQuotes?.length?formatListings(view.otherQuotes):view.others.map(JD.money).join(' · ')+' each';
       const decision=card.querySelector('[data-decision]');
       decision.textContent=view.decision?.text||'';
       decision.hidden=!view.decision;

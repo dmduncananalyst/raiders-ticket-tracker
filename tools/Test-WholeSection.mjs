@@ -30,7 +30,14 @@ const listing=(id,row,price,seats)=>({verified:true,listingId:id,eventId:game.ev
 const tracker=context.JDTracker.createTracker({querySelector(){return card;}},{async getCurrentPrices(){return {source:'ticketmaster',eventId:game.event,checkedAt:Date.now(),own:listing('own',1,37500,[11,12,13,14]),listings:[listing('outside-old-range',12,15000,[1]),listing('other-row',7,17000,[1,2,3])]};}});
 try{
  await new Promise(r=>setTimeout(r,20));
- assert.equal(fields.get('[data-others]').textContent,'$150.00 each · Row 12\n$170.00 each · Row 7');
+ assert.equal(fields.get('[data-others]').textContent,'Row 7\nSeats 1–3 — $170.00 each\n\nRow 12\nSeat 1 — $150.00 each');
  assert.equal(fields.get('[data-decision]').hidden,true);
  console.log('PASS real renderer shows all-section listings without recommendation-eligible offers');
 }finally{tracker.dispose();}
+const grouped=context.JDTracker.createTracker({querySelector(){return card;}},{async getCurrentPrices(){return {source:'ticketmaster',eventId:game.event,checkedAt:Date.now(),own:listing('own',1,37500,[11,12,13,14]),listings:[listing('seat2',9,22500,[2]),listing('pair',9,28800,[5,6]),listing('row3',3,30000,[7,8]),listing('seat1',9,25000,[1])]};}});
+try{
+ await new Promise(r=>setTimeout(r,20));
+ assert.equal(fields.get('[data-others]').textContent,'Row 3\nSeats 7–8 — $300.00 each\n\nRow 9\nSeat 1 — $250.00 each\nSeat 2 — $225.00 each\nSeats 5–6 — $288.00 each');
+ assert.equal(fields.get('[data-decision]').textContent,'LOWER TO $299.00 EACH');
+ console.log('PASS row headers appear once; separate single-seat prices and actual listing ranges stay separate; recommendation unchanged');
+}finally{grouped.dispose();}
