@@ -14,3 +14,24 @@ cloud/
 tools/Setup-TinyFish.ps1
 tools/Test-TinyFishCloud.mjs
 tools/Test-HostedTracker.mjs
+
+# Local browser testing, authentication snapshots, and disposable build output.
+/.local-test-output/
+/.test-build/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.auth/
+/.auth/
+**/chrome-profile*/
+**/chromium-profile*/
+**/puppeteer-profile*/
+**/__pycache__/
+*.pyc
+*.pyo
+/debug.log
+/npm-debug.log*
+!.env.example
+!.env.template
+/credentials.json
+/service-account*.json
