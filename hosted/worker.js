@@ -5,7 +5,11 @@ export default {
     const url=new URL(request.url);
     let response;
     if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/publisher/')) {
-      response=await relay.fetch(request,{...env,ALLOWED_ORIGIN:url.origin});
+      // Only the existing hosted page and the owner's GitHub Pages origin may
+      // make browser requests. Bearer-key and publisher-role checks still apply.
+      const origin=request.headers.get('Origin');
+      const allowedOrigin=origin==='https://dmduncananalyst.github.io'?origin:url.origin;
+      response=await relay.fetch(request,{...env,ALLOWED_ORIGIN:allowedOrigin});
     } else { response=await env.ASSETS.fetch(request); }
     const headers=new Headers(response.headers);
     headers.set('Strict-Transport-Security','max-age=31536000');
